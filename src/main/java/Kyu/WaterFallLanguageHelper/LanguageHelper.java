@@ -10,6 +10,7 @@ import net.md_5.bungee.config.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Reader;
 import java.nio.file.Files;
 import java.util.*;
@@ -17,7 +18,7 @@ import java.util.*;
 public final class LanguageHelper {
 
     private static String defaultLang;
-    private static Reader defaultLangResource;
+    private static InputStream defaultLangResource;
 
     private static String prefix;
 
@@ -31,7 +32,7 @@ public final class LanguageHelper {
 
     private static Plugin plugin;
 
-    public static void setup(Plugin plugin, String defaultLang, Reader langResource, String prefix) {
+    public static void setup(Plugin plugin, String defaultLang, InputStream langResource, String prefix) {
         LanguageHelper.plugin = plugin;
         LanguageHelper.defaultLang = defaultLang;
         LanguageHelper.defaultLangResource = langResource;
