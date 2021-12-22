@@ -225,4 +225,8 @@ public final class LanguageHelper {
     public static String getDefaultLang() {
         return defaultLang;
     }
+
+    public static String getLanguage(ProxiedPlayer p) {
+        return playerLangs.getOrDefault(p, defaultLang);
+    }
 }
