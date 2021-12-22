@@ -130,6 +130,13 @@ public final class LanguageHelper {
         saveConfig(defaultConf, file);
     }
 
+    public static List<String> getLore(String pLang, String loreKey) {
+        if (!lores.containsKey(pLang)) {
+            return lores.get(defaultLang).getOrDefault(loreKey, new ArrayList<>(Arrays.asList(color("&cLore &4 " + loreKey + " &c not found!"))));
+        } else {
+            return lores.get(pLang).getOrDefault(loreKey, new ArrayList<>(Arrays.asList(color("&cLore &4 " + loreKey + " &c not found!"))));
+        }
+    }
 
     public static List<String> getLore(CommandSender p, String loreKey) {
         String pLang;
@@ -143,15 +150,24 @@ public final class LanguageHelper {
         } else {
             pLang = defaultLang;
         }
-        if (!lores.containsKey(pLang)) {
-            return lores.get(defaultLang).getOrDefault(loreKey, new ArrayList<>(Arrays.asList(color("&cLore &4 " + loreKey + " &c not found!"))));
-        } else {
-            return lores.get(pLang).getOrDefault(loreKey, new ArrayList<>(Arrays.asList(color("&cLore &4 " + loreKey + " &c not found!"))));
-        }
+        return getLore(pLang, loreKey);
     }
 
     public static List<String> getLore(String loreKey) {
         return lores.get(defaultLang).getOrDefault(loreKey, new ArrayList<>(Arrays.asList(color("&cLore &4 " + loreKey + " &c not found!"))));
+    }
+
+    public static String getMess(String pLang, String messageKey, boolean... usePrefix) {
+        String message;
+        if (!messages.containsKey(pLang)) {
+            message = messages.get(defaultLang).getOrDefault(messageKey, color("&cMessage &4" + messageKey + "&c not found!"));
+        } else {
+            message = messages.get(pLang).getOrDefault(messageKey, color("&cMessage &4" + messageKey + "&c not found!"));
+        }
+        if (usePrefix.length > 0 && usePrefix[0]) {
+            message = prefix + message;
+        }
+        return message;
     }
 
     public static String getMess(CommandSender p, String messageKey, boolean... usePrefix) {
@@ -166,16 +182,7 @@ public final class LanguageHelper {
         } else {
             pLang = defaultLang;
         }
-        String message;
-        if (!messages.containsKey(pLang)) {
-            message = messages.get(defaultLang).getOrDefault(messageKey, color("&cMessage &4" + messageKey + "&c not found!"));
-        } else {
-            message = messages.get(pLang).getOrDefault(messageKey, color("&cMessage &4" + messageKey + "&c not found!"));
-        }
-        if (usePrefix.length > 0 && usePrefix[0]) {
-            message = prefix + message;
-        }
-        return message;
+        return getMess(pLang, messageKey, usePrefix);
     }
 
     public static String getMess(String messageKey, boolean... usePrefix) {
