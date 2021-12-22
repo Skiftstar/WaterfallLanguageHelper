@@ -1,6 +1,7 @@
 package Kyu.WaterFallLanguageHelper;
 
 import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.plugin.Plugin;
@@ -130,13 +131,17 @@ public final class LanguageHelper {
     }
 
 
-    public static List<String> getLore(ProxiedPlayer p, String loreKey) {
+    public static List<String> getLore(CommandSender p, String loreKey) {
         String pLang;
-        if (!playerLangs.containsKey(p)) {
-            pLang = defaultLang;
-            setupPlayer(p);
+        if (p instanceof ProxiedPlayer) {
+            if (!playerLangs.containsKey(p)) {
+                pLang = defaultLang;
+                setupPlayer((ProxiedPlayer) p);
+            } else {
+                pLang = playerLangs.get(p);
+            }
         } else {
-            pLang = playerLangs.get(p);
+            pLang = defaultLang;
         }
         if (!lores.containsKey(pLang)) {
             return lores.get(defaultLang).getOrDefault(loreKey, new ArrayList<>(Arrays.asList(color("&cLore &4 " + loreKey + " &c not found!"))));
@@ -149,13 +154,17 @@ public final class LanguageHelper {
         return lores.get(defaultLang).getOrDefault(loreKey, new ArrayList<>(Arrays.asList(color("&cLore &4 " + loreKey + " &c not found!"))));
     }
 
-    public static String getMess(ProxiedPlayer p, String messageKey, boolean... usePrefix) {
+    public static String getMess(CommandSender p, String messageKey, boolean... usePrefix) {
         String pLang;
-        if (!playerLangs.containsKey(p)) {
-            pLang = defaultLang;
-            setupPlayer(p);
+        if (p instanceof ProxiedPlayer) {
+            if (!playerLangs.containsKey(p)) {
+                pLang = defaultLang;
+                setupPlayer((ProxiedPlayer) p);
+            } else {
+                pLang = playerLangs.get(p);
+            }
         } else {
-            pLang = playerLangs.get(p);
+            pLang = defaultLang;
         }
         String message;
         if (!messages.containsKey(pLang)) {
