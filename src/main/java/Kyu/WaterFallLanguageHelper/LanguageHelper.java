@@ -12,8 +12,11 @@ import net.md_5.bungee.config.YamlConfiguration;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Reader;
 import java.nio.file.Files;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.*;
 
 public final class LanguageHelper {
@@ -26,18 +29,22 @@ public final class LanguageHelper {
     private static Configuration pLangConf;
     private static File pLangFile;
 
+    private static DB database;
+    private static boolean useDB;
+
     private static Map<String, Map<String, String>> messages = new HashMap<>();
     private static Map<String, Map<String, List<String>>> lores = new HashMap<>();
 
-    private static Map<ProxiedPlayer, String> playerLangs = new HashMap<>();
+    private static Map<UUID, String> playerLangs = new HashMap<>();
 
     private static Plugin plugin;
 
-    public static void setup(Plugin plugin, String defaultLang, InputStream langResource, String prefix) {
+    public static void setup(Plugin plugin, String defaultLang, InputStream langResource, String prefix, boolean useDB) {
         LanguageHelper.plugin = plugin;
         LanguageHelper.defaultLang = defaultLang;
         LanguageHelper.defaultLangResource = langResource;
         LanguageHelper.prefix = prefix;
+        LanguageHelper.useDB = useDB;
 
         pLangFile = new File(plugin.getDataFolder(), "playerLangs.yml");
         if (!pLangFile.exists()) {
@@ -61,6 +68,10 @@ public final class LanguageHelper {
 
         loadMessages();
         new MessageJoinListener(plugin);
+    }
+
+    public static void setDatabase(DB database) {
+        LanguageHelper.database = database;
     }
 
     private static void loadMessages() {
@@ -141,11 +152,12 @@ public final class LanguageHelper {
     public static List<String> getLore(CommandSender p, String loreKey) {
         String pLang;
         if (p instanceof ProxiedPlayer) {
-            if (!playerLangs.containsKey(p)) {
+            ProxiedPlayer player = (ProxiedPlayer) p;
+            if (!playerLangs.containsKey(player.getUniqueId())) {
                 pLang = defaultLang;
                 setupPlayer((ProxiedPlayer) p);
             } else {
-                pLang = playerLangs.get(p);
+                pLang = playerLangs.get(player.getUniqueId());
             }
         } else {
             pLang = defaultLang;
@@ -173,11 +185,12 @@ public final class LanguageHelper {
     public static String getMess(CommandSender p, String messageKey, boolean... usePrefix) {
         String pLang;
         if (p instanceof ProxiedPlayer) {
-            if (!playerLangs.containsKey(p)) {
+            ProxiedPlayer player = (ProxiedPlayer) p;
+            if (!playerLangs.containsKey(player.getUniqueId())) {
                 pLang = defaultLang;
                 setupPlayer((ProxiedPlayer) p);
             } else {
-                pLang = playerLangs.get(p);
+                pLang = playerLangs.get(player.getUniqueId());
             }
         } else {
             pLang = defaultLang;
@@ -194,14 +207,54 @@ public final class LanguageHelper {
     }
 
     public static void setupPlayer(ProxiedPlayer p) {
-        if (pLangConf.get(p.getUniqueId().toString()) == null) {
-            p.sendMessage(new TextComponent(getMess("NoLangSet", true).replace("%default", defaultLang)));
-            pLangConf.set(p.getUniqueId().toString(), defaultLang);
-            saveConfig(pLangConf, pLangFile);
-            playerLangs.put(p, defaultLang);
+        if (!isUseDB()) {
+            if (pLangConf.get(p.getUniqueId().toString()) == null) {
+                String gameLanguage = p.getLocale().getLanguage().split("_")[0];
+                String defaultLang = LanguageHelper.defaultLang;
+                if (messages.get(gameLanguage) != null) {
+                    defaultLang = gameLanguage;
+                }
+
+                pLangConf.set(p.getUniqueId().toString(), defaultLang);
+                saveConfig(pLangConf, pLangFile);
+                playerLangs.put(p.getUniqueId(), defaultLang);
+                p.sendMessage(new TextComponent(getMess(p, "NoLangSet", true).replace("%default", defaultLang)));
+            } else {
+                String lang = pLangConf.getString(p.getUniqueId().toString());
+                playerLangs.put(p.getUniqueId(), lang);
+            }
         } else {
-            String lang = pLangConf.getString(p.getUniqueId().toString());
-            playerLangs.put(p, lang);
+            Connection conn = database.getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement("SELECT lang FROM langusers WHERE uuid = ?;")) {
+                stmt.setString(1, p.getUniqueId().toString());
+                ResultSet rs = stmt.executeQuery();
+
+                if (rs.next()) {
+                    String lang = rs.getString("lang");
+                    playerLangs.put(p.getUniqueId(), lang);
+                } else {
+                    String gameLanguage = p.getLocale().getLanguage().split("_")[0];
+                    String defaultLang = LanguageHelper.defaultLang;
+                    if (messages.get(gameLanguage) != null) {
+                        defaultLang = gameLanguage;
+                    }
+
+                    PreparedStatement statemt = conn.prepareStatement("INSERT INTO langusers(uuid, lang) VALUES(?, ?);");
+                    statemt.setString(1, p.getUniqueId().toString());
+                    statemt.setString(2, defaultLang);
+                    statemt.execute();
+                    statemt.close();
+
+                    pLangConf.set(p.getUniqueId().toString(), defaultLang);
+                    saveConfig(pLangConf, pLangFile);
+                    playerLangs.put(p.getUniqueId(), defaultLang);
+                    p.sendMessage(new TextComponent(getMess(p, "NoLangSet", true).replace("%default", defaultLang)));
+                }
+                conn.close();
+                stmt.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -218,15 +271,28 @@ public final class LanguageHelper {
     }
 
 
-    public static void changeLang(ProxiedPlayer p, String newLang) {
+    public static void changeLang(UUID p, String newLang) {
         playerLangs.remove(p);
         playerLangs.put(p, newLang);
-        pLangConf.set(p.getUniqueId().toString(), newLang);
+        pLangConf.set(p.toString(), newLang);
         saveConfig(pLangConf, pLangFile);
+
+        if (isUseDB()) {
+            Connection conn = database.getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement("UPDATE langusers SET lang = ? WHERE uuid = ?;")) {
+                stmt.setString(1, newLang);
+                stmt.setString(2, p.toString());
+                stmt.executeUpdate();
+                stmt.close();
+                conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     public static void remPlayer(ProxiedPlayer p) {
-        playerLangs.remove(p);
+        playerLangs.remove(p.getUniqueId());
     }
 
     public static String getDefaultLang() {
@@ -235,5 +301,9 @@ public final class LanguageHelper {
 
     public static String getLanguage(ProxiedPlayer p) {
         return playerLangs.getOrDefault(p, defaultLang);
+    }
+
+    public static boolean isUseDB() {
+        return useDB;
     }
 }
