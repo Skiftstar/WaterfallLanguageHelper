@@ -1,36 +1,30 @@
 package Kyu.WaterFallLanguageHelper;
 
-import java.sql.Connection;
-import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
 
-import org.mariadb.jdbc.MariaDbDataSource;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
 
-public class DB {
-    private String user, password, url;
-    private MariaDbDataSource dataSource;
+public interface DB {
 
-    public DB(String host, int port, String user, String password, String database) {
-        this.user = user;
-        this.password = password;
-        try {
-            Class.forName("org.mariadb.jdbc.Driver");
-        } catch (ClassNotFoundException e1) {
-            e1.printStackTrace();
-        }
-        try {
-            url = "jdbc:mariadb://" + host + ":" + port + "/" + database;
-            dataSource = new MariaDbDataSource(url);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+    static String NAME_SPACER = "::::";
 
-    public Connection getConnection() {
-        try {
-            return dataSource.getConnection(user, password);
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
+    public void init();
+
+    public void updateUser(String uuid, String newLang);
+
+    public void setupPlayer(ProxiedPlayer p);
+
+    public boolean isStoreMessagesInDB();
+
+    public boolean hasKey(String language, String topKey, String msgKey);
+
+    public void setLore(String language, String topKey, String msgKey, List<String> lore);
+
+    public void setMessage(String language, String topKey, String msgKey, String message);
+
+    public Map<String, Map<String, List<String>>> getLores();
+
+    public Map<String, Map<String, String>> getMessages();
+
 }

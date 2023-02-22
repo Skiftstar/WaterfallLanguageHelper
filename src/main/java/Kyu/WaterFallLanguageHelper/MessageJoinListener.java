@@ -15,12 +15,12 @@ public class MessageJoinListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onJoin(PostLoginEvent e) {
-        LanguageHelper.setupPlayer(e.getPlayer());
+        LanguageHelper.getInstance().setupPlayer(e.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onLeave(PlayerDisconnectEvent e) {
-        LanguageHelper.remPlayer(e.getPlayer());
+        LanguageHelper.getInstance().remPlayer(e.getPlayer());
     }
 
 }
