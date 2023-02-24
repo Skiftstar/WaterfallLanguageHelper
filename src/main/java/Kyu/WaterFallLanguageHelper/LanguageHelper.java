@@ -322,6 +322,10 @@ public final class LanguageHelper {
         return playerLangs.getOrDefault(p, defaultLang);
     }
 
+    public Set<String> getLanguages() {
+        return messages.keySet();
+    }
+
     public Map<UUID, String> getPlayerLangs() {
         return playerLangs;
     }
